@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+/*    agent {                                           */
+/*        node {                                        */
+/*            label 'jenkins-host-1.riki.com'           */
+/*            customWorkspace '/rikiworkspace/'         */
+/*        }                                             */
+/*    }  
+    stages {
+        stage('Checkout Codebase') {
+            steps {
+            checkout scm: [$class: 'GitSCM',
+            userRemoteConfigs: [[credentialsId: 'github-ssh-key',url: 'git@github.com:mnorm88/multithreading-example-1.git']]]
+            }
+        }
+                                               */
+    stages {
+        stage('Checkout project') {
+            steps {
+                script {
+                    git branch: "main",
+                        url: 'https://github.com/vastevenson/pytest-intro-vs.git'
+                }
+            }
+        }
+        stage('Installing packages') {
+            steps {
+                script {
+                    sh '/home/rikichrisoliva/python-builder-test-stage/venv/bin/pip install -r requirements.txt'
+                }
+            }
+        }
+        stage('Static Code Checking') {
+            steps {
+                script {
+                    sh 'find . -name \\*.py | xargs /home/rikichrisoliva/python-builder-test-stage/venv/bin/pylint -f parseable | tee pylint.log'
+/*                    recordIssues(                                 */
+/*                        tool: pyLint(pattern: 'pylint.log'),      */
+/*                        unstableTotalHigh: 9,                     */
+/*                    )                                             */
+                }
+            }
+        }
+        stage('Running Unit tests') {
+            steps {
+                script {
+/*                    sh '/home/rikichrisoliva/python-builder-test-stage/venv/bin/pytest --with-xunit --xunit-file=pyunit.xml --cover-xml --cover-xml-file=cov.xml /*.py || true'   */
+                    sh '/home/rikichrisoliva/python-builder-test-stage/venv/bin/pytest -v --disable-warnings --junitxml test-result.xml .'
+                    junit allowEmptyResults: true, testResults: '*.xml'
+                }
+            }
+        }
+    }
+}

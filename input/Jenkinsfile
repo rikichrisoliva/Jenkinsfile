@@ -1,0 +1,46 @@
+// https://github.com/wololock/jenkine-pipeline-maven-demo
+// PROBLEM - every stage blocks the executor. Jenkins topology - you may have 5 Jenkins node, and every node has three executors
+// what if no one reacted to the approval, during this time, the executor can't handle any other Jenkins job, blocking the executor
+// SOLUTION - use executor in a stage. for the stage that asks for approval, then do it outside the executor so as to free the executor
+// agent none is important at the beginning
+
+pipeline {
+	agent none
+
+	stages {
+  stage("Build") {
+    agent any
+    options {
+      timeout(time: 1, unit:"MINUTES")     
+    }
+    steps {
+      sh "mvn -version"         // mvn requires mvn command line to be installed on Jenkins
+      sh "mvn clean install"
+    }
+  }
+
+  stage("Accept Deployment") {
+    options {
+      timeout(time: 1, unit:"MINUTES")     
+    }
+    steps {
+      input(message: "Approve Deploy?", ok: "Yes")
+    }
+  }
+
+  stage("Deploy") {
+    agent any
+    steps {
+      sh "sleep 10s"
+    }
+  }
+
+}
+// after stages, as best practice, execute clean workspace, so the pipeline always starts with a clean workspace.
+// the build job will fail if you don't have a build product like Maven
+    post    {
+        always  {
+            cleanWs()
+        }
+    }
+}
